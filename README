@@ -1,0 +1,6 @@
+SafeCharge Gateway API
+
+This is an API integration for SafeCharge Gateway service.
+
+The Gateway Specification is at:
+http://www.safecharge.com/tech_support/sc_gtwy_direct_integration_guide_r2s0u1.pdf
