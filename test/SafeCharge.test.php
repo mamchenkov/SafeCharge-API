@@ -84,7 +84,7 @@ class SafeChargeTest extends PHPUnit_Framework_TestCase {
 	 *
 	 * !!! ATTENTION !!! Specify your SafeCharge test credentials in this method
 	 *
-	 * @dataProvider getValidTransactions
+	 * @dataProvider provide_doQuery
 	 */
 	public function test_doQuery($type, $params) {
 
@@ -107,9 +107,9 @@ class SafeChargeTest extends PHPUnit_Framework_TestCase {
 	}
 
 	/**
-	 * Provides valid transaction data
+	 * Provides transaction data
 	 */
-	public function getValidTransactions() {
+	public function provide_doQuery() {
 		$result = array();
 		$cards = $this->validCards;
 		shuffle($cards);
@@ -139,6 +139,60 @@ class SafeChargeTest extends PHPUnit_Framework_TestCase {
 			$result[] = $transaction;
 		}
 		return $result;
+	}
+
+	/**
+	 * Test that card number cleaning is working properly
+	 *
+	 * @dataProvider provide_cleanCardNumber
+	 */
+	public function test_cleanCardNumber($expected, $number) {
+		$settings = array();
+		$sf = new SafeCharge($settings);
+
+		$result = $sf->cleanCardNumber($number);
+		$this->assertEquals($expected, $result);
+	}
+
+	/**
+	 * Provide card numbers for cleaning
+	 */
+	public function provide_cleanCardNumber() {
+		return array(
+				'doNothing'   => array('1234567890123', '1234567890123'),
+				'cleanSpaces' => array('1234567890123', '1234 5678 90123'),
+				'cleanDashes' => array('1234567890123', '1234-5678-90123'),
+				'cleanBoth'   => array('1234567890123', '1234-5678 90123'),
+				'cleanAll'    => array('',              'abcd-efgh-ijklm'),
+			);
+	}
+
+	/**
+	 * Test that string padding is working properly
+	 *
+	 * @dataProvider provide_padString
+	 */
+	public function test_padString($expected, $number, $start, $end, $char) {
+		$settings = array();
+		$sf = new SafeCharge($settings);
+
+		$result = $sf->padString($number, $start, $end, $char);
+		$this->assertEquals($expected, $result);
+	}
+
+	/**
+	 * Provide strings for padding
+	 */
+	public function provide_padString() {
+		return array(
+				'everythingX' => array('xxxxxx', '123456', 0, 0, 'x'),
+				'everythingY' => array('yyyyyy', '123456', 0, 0, 'y'),
+				'nothing'     => array('123456', '123456', 6, 0, 'x'),
+				'startOnly'   => array('123xxx', '123456', 3, 0, 'x'),
+				'endOnly'     => array('xxx456', '123456', 0, 3, 'x'),
+				'range1_4'    => array('1x3456', '123456', 1, 4, 'x'),
+				'range1_1'    => array('1xxxx6', '123456', 1, 1, 'x'),
+			);
 	}
 
 }

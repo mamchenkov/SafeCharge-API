@@ -42,6 +42,18 @@ class SafeCharge {
 	const SERVER_TEST = 'https://test.safecharge.com/service.asmx/Process?';
 
 	/**
+	 * Minimum length of a credit card number
+	 */
+	const MIN_LENGTH = 13;
+
+	/**
+	 * Maximum length of a credit card number
+	 *
+	 * @link http://www.merriampark.com/anatomycc.htm
+	 */
+	const MAX_LENGTH = 19;
+
+	/**
 	 * List of all supported transaction types
 	 */
 	protected $transactionTypes = array(
@@ -135,6 +147,9 @@ class SafeCharge {
 				'timeout' => 30,
 				'live' => false,
 				'log' => '',
+				'padFrom' => 6,
+				'padTo' => 4,
+				'padWith' => 'x',
 				'instanceId' => rand(1,100000),
 			);
 		$this->settings = array_merge($defaultSettings, $settings);
@@ -289,11 +304,17 @@ class SafeCharge {
 		$result = '';
 
 		if ($safe) {
-			$sensitiveFields = array('sg_ClientLoginID', 'sg_ClientPassword', 'sg_CardNumber');
-			foreach ($sensitiveFields as $field) {
-				if (!empty($params[$field])) {
-					$params[$field] = 'HIDDEN';
-				}
+			// Replace completely
+			if (!empty($params['sg_ClientPassword'])) {
+				$params['sg_ClientPassword'] = $this->padString($params['sg_ClientPassword'], 0, 0);
+			}
+			if (!empty($params['sg_CVV2'])) {
+				$params['sg_CVV2'] = $this->padString($params['sg_CVV2'], 0, 0);
+			}
+
+			// Replace partially
+			if (!empty($params['sg_CardNumber'])) {
+				$params['sg_ClientPassword'] = $this->padString($params['sg_CardNumber']);
 			}
 		}
 		$result = http_build_query($params);
@@ -413,16 +434,32 @@ class SafeCharge {
 	/**
 	 * Check the validity of the credit card number
 	 *
+	 * - Check minimum length
+	 * - Check maximum length
+	 * - Check with Luhn algorithm
+	 *
 	 * @param array $params Query parameters
 	 */
 	protected function doQueryCheckCardNumber($params) {
 		$cardNumber = $params['sg_CardNumber'];
 
+		if ($cardNumber <> $this->cleanCardNumber($cardNumber)) {
+			throw new CardNumberException("Card number is not pre-processed");
+		}
+
+		$cardLength = strlen($cardNumber); 
+
+		if ($cardLength < self::MIN_LENGTH) {
+			throw new CardNumberException("Card number is too short");
+		}
+
+		if ($cardLength > self::MAX_LENGTH) {
+			throw new CardNumberException("Card number is too long");
+		}
+
 		/* Credit card LUHN checker - coded '05 shaman - www.planzero.org     *
 		 * This code has been released into the public domain, however please *
 		 * give credit to the original author where possible.                 */
-		$cardNumber = preg_replace("/\D|\s/", '', $cardNumber);  # strip any non-digits
-		$cardLength = strlen($cardNumber); 
 		$parity = $cardLength % 2;
 		$sum = 0;
 		for ($i = 0; $i < $cardLength; $i++) { 
@@ -434,8 +471,51 @@ class SafeCharge {
 		$valid = ($sum % 10 == 0) ? true : false; 
 
 		if (!$valid) {
-			throw new CardNumberException("Invalid card number");
+			throw new CardNumberException("Invalid checksum");
 		}
+	}
+
+	/**
+	 * Remove any non-digit characters from card number
+	 *
+	 * @param string $number Card number to clean
+	 * @return string
+	 */
+	public function cleanCardNumber($number) {
+		$result = preg_replace('/\D/', '', $number);
+		return $result;
+	}
+
+	/**
+	 * Replace middle of the string with given char, keeping length
+	 *
+	 * <code>
+	 * print padString('1234567890123456', 0, 0, 'x');
+	 * </code>
+	 *
+	 * @param string $string String to process
+	 * @param integer $start Characters to skip from start
+	 * @param integer $end Characters to leave at the end
+	 * @param string $char Character to replace with
+	 * @return string
+	 */
+	public function padString($string, $start = null, $end = null, $char = null) {
+		$result = ''; 
+
+		if ($start === null) { $start = $this->settings['padFrom']; }
+		if ($end === null)   { $end   = $this->settings['padTo'];   }
+		if ($char === null)  { $char  = $this->settings['padWith']; }
+
+		$length = strlen($string) - $start - $end;
+		if ($length <= 0) {
+			$result = $string;
+		}   
+		else {
+			$replacement = sprintf("%'{$char}" . $length . "s", $char);
+			$result = substr_replace($string, $replacement, $start, $length);
+		}   
+
+		return $result;
 	}
 
 	/**
