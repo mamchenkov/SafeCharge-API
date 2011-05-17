@@ -10,23 +10,8 @@
  */
 require_once dirname(__FILE__) . '/../SafeCharge.php';
 
-require_once dirname(__FILE__) . '/settings.php';
 /**
  * SafeCharge Test
- *
- * NOTE: Before you will be able to use this properly,
- * you'll need a settings.php file created in the same
- * directory with this unit test file.  Example:
- *
- * <code>
- * <?php
- * $settings = array(
- *   'username' => 'SF Gateway username',
- *   'password' => 'SF Gateway password',
- *   'log'      => 'sf.log',
- * );
- * ?>
- * </code>
  *
  * @author Leonid Mamchenkov <leonid@mamchenkov.net>
  * @package SafeCharge
@@ -97,15 +82,21 @@ class SafeChargeTest extends PHPUnit_Framework_TestCase {
 	/**
 	 * Test Auth transactions
 	 *
+	 * !!! ATTENTION !!! Specify your SafeCharge test credentials in this method
+	 *
 	 * @dataProvider getValidTransactions
 	 */
 	public function test_doQuery($type, $params) {
 
-		// NOTE!!! Use your test API login and password here or all tests will fail
 		$settings = array(
 				'username' => '',
 				'password' => '',
 			);
+
+		if (empty($settings['username']) || empty($settings['password'])) {
+			$this->markTestSkipped("Both username and password to SafeCharge API are required to run this test");
+		}
+
 		$sf = new SafeCharge($settings);
 
 		$result = $sf->doQuery($type, $params, true);
