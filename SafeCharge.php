@@ -283,6 +283,7 @@ class SafeCharge {
 				'sg_ClientPassword' => $this->settings['password'],
 				'sg_IPAddress' => '127.0.0.1',
 				'sg_ResponseFormat' => 4,
+				'sg_Is3dTrans' => 0,
 				'sg_ClientUniqueID' => (string) time(),
 			);
 		$result = array_merge($defaultParams, $params);
