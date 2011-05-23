@@ -315,7 +315,7 @@ class SafeCharge {
 
 			// Replace partially
 			if (!empty($params['sg_CardNumber'])) {
-				$params['sg_ClientPassword'] = $this->padString($params['sg_CardNumber']);
+				$params['sg_CardNumber'] = $this->padString($params['sg_CardNumber']);
 			}
 		}
 		$result = http_build_query($params);
