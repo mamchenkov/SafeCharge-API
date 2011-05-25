@@ -130,8 +130,8 @@ class SafeCharge {
 	 * Constructor
 	 *
 	 * Supported settings are:
-	 * - username   -  SafeCharge API username. Required for any queries to the API
-	 * - password   -  SafeCharge API password. Required for any queries to the API
+	 * - username   -  SafeCharge username. Required for any queries to the gateway
+	 * - password   -  SafeCharge password. Required for any queries to the gateway
 	 * - timeout    -  Network operations timeout (in seconds)
 	 * - live       -  Set to true for Live server, otherwise Test server will be used
 	 * - log        -  Full path to the log file, if logging is necessary
@@ -215,7 +215,7 @@ class SafeCharge {
 	}
 
 	/**
-	 * Send query to SafeCharge API
+	 * Send query to SafeCharge gateway
 	 *
 	 * @param string $queryUrl Query to send
 	 * @param string $queryId ID of the query (for logging purposes)
