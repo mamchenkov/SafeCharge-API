@@ -42,6 +42,9 @@ class SafeCharge {
 	const SERVER_LIVE = 'https://process.safecharge.com/service.asmx/Process?';
 	const SERVER_TEST = 'https://test.safecharge.com/service.asmx/Process?';
 
+	const RESPONSE_XML_VERSION = '1.0';
+	const RESPONSE_XML_ENCODING = 'utf-8';
+
 	/**
 	 * Minimum length of a credit card number
 	 */
@@ -272,6 +275,7 @@ class SafeCharge {
 	/**
 	 * Validate gateway response
 	 *
+	 * @throws InternalException
 	 * @throws ResponseException
 	 * @param string $response Response to validate
 	 * @param string $queryId ID of the query (for logging purposes)
@@ -279,10 +283,23 @@ class SafeCharge {
 	 */
 	protected function doResponseValidate($response, $queryId = null) {
 		$this->log("$queryId Validating XML response");
+
+		if (!function_exists('libxml_use_internal_errors')) {
+			throw new InternalException("Insufficient PHP support: missing libxml_use_internal_errors() function");
+		}
 		libxml_use_internal_errors(true);
-		$doc = new DOMDocument('1.0', 'utf-8');
+
+		if (!class_exists('DOMDocument')) {
+			throw new InternalException("Insufficient PHP support: missing DOMDocument class");
+		}
+		$doc = new DOMDocument(self::RESPONSE_XML_VERSION, self::RESPONSE_XML_ENCODING);
 		$doc->loadXML($response);
+
+		if (!function_exists('libxml_get_errors')) {
+			throw new InternalException("Insufficient PHP support: missing libxml_get_errors() function");
+		}
 		$errors = libxml_get_errors();
+
 		if (!empty($errors)) {
 			$this->log("$queryId Failed to validate XML response");
 			throw new ResponseException("Failed to validate XML response");
@@ -292,6 +309,7 @@ class SafeCharge {
 	/**
 	 * Parse response as XML
 	 *
+	 * @throws InternalException
 	 * @throws ResponseException
 	 * @param string $response Response to parse
 	 * @param string $queryId ID of the query (for logging purposes)
@@ -301,6 +319,11 @@ class SafeCharge {
 		$result = null;
 
 		$this->log("$queryId Parsing XML response");
+
+		if (!class_exists('SimpleXMLElement')) {
+			throw new InternalException("Insufficient PHP support: missing SimpleXMLElement class");
+		}
+
 		try {
 			$result = new SimpleXMLElement($response);
 		}
