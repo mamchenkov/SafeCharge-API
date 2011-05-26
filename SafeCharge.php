@@ -106,7 +106,7 @@ class SafeCharge {
 	 * @throws Exception
 	 * @param string $type Type of query (Auth, Settle, etc)
 	 * @param array $params Query params
-	 * @return null|string|object Null on failure, string or SimpleXMLElement on success
+	 * @return null|object Null on failure, or SimpleXMLElement on success
 	 */
 	public function doQuery($type, $params) {
 		$result = null;
