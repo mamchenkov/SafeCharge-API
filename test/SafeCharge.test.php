@@ -6,17 +6,17 @@
  */
 
 /**
- * Include SafeCharge class
+ * Include Safecharge class
  */
-require_once dirname(__FILE__) . '/../SafeCharge.php';
+require_once dirname(__FILE__) . '/../Safecharge.php';
 
 /**
- * SafeCharge Test
+ * Safecharge Test
  *
  * @author Leonid Mamchenkov <leonid@mamchenkov.net>
  * @package SafeCharge
  */
-class SafeChargeTest extends PHPUnit_Framework_TestCase {
+class SafechargeTest extends PHPUnit_Framework_TestCase {
 
 	/**
 	 * List of valid test card numbers
@@ -97,13 +97,13 @@ class SafeChargeTest extends PHPUnit_Framework_TestCase {
 			$this->markTestSkipped("Both username and password to SafeCharge API are required to run this test");
 		}
 
-		$sf = new SafeCharge($settings);
+		$sf = new Safecharge($settings);
 
 		$result = $sf->doQuery($type, $params, true);
 		$this->assertFalse(empty($result), "Result is empty");
 		$this->assertTrue(is_object($result), "Result is not an XML object");
 		$this->assertFalse(empty($result->TransactionID), "No transaction ID");
-		$this->assertEquals(SafeCharge::STATUS_APPROVED, (string) $result->Status, "Transaction not approved [" . $result->Status . "], reason: [" . $result->Reason . "]");
+		$this->assertEquals(SafeCharge::RESPONSE_STATUS_APPROVED, (string) $result->Status, "Transaction not approved [" . $result->Status . "], reason: [" . $result->Reason . "]");
 	}
 
 	/**
@@ -115,7 +115,7 @@ class SafeChargeTest extends PHPUnit_Framework_TestCase {
 		shuffle($cards);
 		foreach ($this->validCards as $card) {
 			$transaction = array(
-				SafeCharge::QUERY_AUTH, 
+				SafeCharge::REQUEST_TYPE_AUTH, 
 				array(
 					'sg_FirstName'=>'John',
 					'sg_LastName'=>'Smith',
@@ -139,60 +139,6 @@ class SafeChargeTest extends PHPUnit_Framework_TestCase {
 			$result[] = $transaction;
 		}
 		return $result;
-	}
-
-	/**
-	 * Test that card number cleaning is working properly
-	 *
-	 * @dataProvider provide_cleanCardNumber
-	 */
-	public function test_cleanCardNumber($expected, $number) {
-		$settings = array();
-		$sf = new SafeCharge($settings);
-
-		$result = $sf->cleanCardNumber($number);
-		$this->assertEquals($expected, $result);
-	}
-
-	/**
-	 * Provide card numbers for cleaning
-	 */
-	public function provide_cleanCardNumber() {
-		return array(
-				'doNothing'   => array('1234567890123', '1234567890123'),
-				'cleanSpaces' => array('1234567890123', '1234 5678 90123'),
-				'cleanDashes' => array('1234567890123', '1234-5678-90123'),
-				'cleanBoth'   => array('1234567890123', '1234-5678 90123'),
-				'cleanAll'    => array('',              'abcd-efgh-ijklm'),
-			);
-	}
-
-	/**
-	 * Test that string padding is working properly
-	 *
-	 * @dataProvider provide_padString
-	 */
-	public function test_padString($expected, $number, $start, $end, $char) {
-		$settings = array();
-		$sf = new SafeCharge($settings);
-
-		$result = $sf->padString($number, $start, $end, $char);
-		$this->assertEquals($expected, $result);
-	}
-
-	/**
-	 * Provide strings for padding
-	 */
-	public function provide_padString() {
-		return array(
-				'everythingX' => array('xxxxxx', '123456', 0, 0, 'x'),
-				'everythingY' => array('yyyyyy', '123456', 0, 0, 'y'),
-				'nothing'     => array('123456', '123456', 6, 0, 'x'),
-				'startOnly'   => array('123xxx', '123456', 3, 0, 'x'),
-				'endOnly'     => array('xxx456', '123456', 0, 3, 'x'),
-				'range1_4'    => array('1x3456', '123456', 1, 4, 'x'),
-				'range1_1'    => array('1xxxx6', '123456', 1, 1, 'x'),
-			);
 	}
 
 }
