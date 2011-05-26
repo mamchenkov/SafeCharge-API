@@ -10,12 +10,12 @@
  */
 require_once 'Net/Curl.php';
 
-require_once dirname(__FILE__) . '/libs/CardNumberException.php';
-require_once dirname(__FILE__) . '/libs/InternalException.php';
-require_once dirname(__FILE__) . '/libs/NetworkException.php';
-require_once dirname(__FILE__) . '/libs/ValidationException.php';
-require_once dirname(__FILE__) . '/libs/ResponseException.php';
-
+// Load exceptions
+require_once dirname(__FILE__) . '/libs/exceptions/CardNumberException.php';
+require_once dirname(__FILE__) . '/libs/exceptions/InternalException.php';
+require_once dirname(__FILE__) . '/libs/exceptions/NetworkException.php';
+require_once dirname(__FILE__) . '/libs/exceptions/ValidationException.php';
+require_once dirname(__FILE__) . '/libs/exceptions/ResponseException.php';
 
 /**
  * SafeCharge Gateway API
