@@ -14,6 +14,7 @@ require_once dirname(__FILE__) . '/libs/CardNumberException.php';
 require_once dirname(__FILE__) . '/libs/InternalException.php';
 require_once dirname(__FILE__) . '/libs/NetworkException.php';
 require_once dirname(__FILE__) . '/libs/ValidationException.php';
+require_once dirname(__FILE__) . '/libs/ResponseException.php';
 
 
 /**
@@ -162,6 +163,13 @@ class SafeCharge {
 	}
 
 	/**
+	 * Destructor
+	 */
+	public function __destruct() {
+		$this->log("Shutting down");
+	}
+
+	/**
 	 * Send request
 	 *
 	 * @param string $type Type of query (Auth, Settle, etc)
@@ -190,7 +198,9 @@ class SafeCharge {
 			$this->log("$queryId Query URL: $logQueryUrl");
 
 			$response = $this->doQuerySend($queryUrl, $queryId);
-			$result = $this->doQueryParse($response, $queryId);
+			$this->doResponseValidate($response, $queryId);
+
+			$result = $this->doResponseParse($response, $queryId);
 		}
 		catch (NetworkException $e) {
 			$this->log("$queryId Caught Network Exception: " . $e->getMessage());
@@ -198,6 +208,10 @@ class SafeCharge {
 		}
 		catch (InternalException $e) {
 			$this->log("$queryId Caught Internal Exception: " . $e->getMessage());
+			throw new Exception("Internal server error. Please try again later.");
+		}
+		catch (ResponseException $e) {
+			$this->log("$queryId Caught Response Exception: " . $e->getMessage());
 			throw new Exception("Internal server error. Please try again later.");
 		}
 		catch (ValidationException $e) {
@@ -254,21 +268,41 @@ class SafeCharge {
 	}
 
 	/**
+	 * Validate gateway response
+	 *
+	 * @param string $response Response to validate
+	 * @param string $queryId ID of the query (for logging purposes)
+	 * @return void
+	 */
+	protected function doResponseValidate($response, $queryId = null) {
+		$this->log("$queryId Validating XML response");
+		libxml_use_internal_errors(true);
+		$doc = new DOMDocument('1.0', 'utf-8');
+		$doc->loadXML($response);
+		$errors = libxml_get_errors();
+		if (!empty($errors)) {
+			$this->log("$queryId Failed to validate XML response");
+			throw new ResponseException("Failed to validate XML response");
+		}
+	}
+
+	/**
 	 * Parse response as XML
 	 *
 	 * @param string $response Response to parse
 	 * @param string $queryId ID of the query (for logging purposes)
-	 * @return string|object SimpleXMLElement object if parsed, plain text otherwise
+	 * @return null|object SimpleXMLElement object if parsed, plain text otherwise
 	 */
-	protected function doQueryParse($response, $queryId = null) {
-		$result = '';
+	protected function doResponseParse($response, $queryId = null) {
+		$result = null;
 
-		if (!empty($response) && preg_match('#<#', $response)) {
-			$this->log("$queryId Parsing XML response");
+		$this->log("$queryId Parsing XML response");
+		try {
 			$result = new SimpleXMLElement($response);
 		}
-		else {
-			$result = $response;
+		catch (Exception $e) {
+			$this->log("$queryId Failed to parse XML response: " . $e->getMessage());
+			throw new ResponseException("Failed to parse XML response: " . $e->getMessage());
 		}
 
 		return $result;
