@@ -106,7 +106,7 @@ class Safecharge {
 	 * @throws Exception
 	 * @param string $type Type of query (Auth, Settle, etc)
 	 * @param array $params Query params
-	 * @return null|object Null on failure, or SimpleXMLElement on success
+	 * @return null|object Null on failure, or SafechargeResponse object on success
 	 */
 	public function doQuery($type, $params) {
 		$result = null;
@@ -120,8 +120,6 @@ class Safecharge {
 
 		try {
 			$this->request->setType($type);
-			$this->request->setLive($this->settings['live']);
-			$this->request->setCredentials($this->settings['username'], $this->settings['password']);
 			$this->request->setParameters($params);
 
 			$logQueryUrl = $this->request->build(true);

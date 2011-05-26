@@ -52,11 +52,6 @@ class SafechargeRequest  {
 	protected $params = array();
 
 	/**
-	 * Send request to live or test server
-	 */
-	protected $live = false;
-
-	/**
 	 * Transaction fields
 	 *
 	 * See Page 22 Appendix I: Input Parameter Tables from
@@ -136,6 +131,7 @@ class SafechargeRequest  {
 		$id = (string) $id;
 		$this->id = empty($id) ? $this->generateId() : $id;
 		$this->params = $this->getDefaultParameters();
+
 	}
 
 	/**
@@ -164,6 +160,8 @@ class SafechargeRequest  {
 	 */
 	protected function getDefaultParameters() {
 		$result =array(
+				'sg_ClientLoginID'  => (string) $this->settings['username'],
+				'sg_ClientPassword' => (string) $this->settings['password'],
 				'sg_IPAddress'      => SafechargeConstants::REQUEST_DEFAULT_IP_ADDRESS,
 				'sg_ResponseFormat' => SafechargeConstants::REQUEST_DEFAULT_RESPONSE_FORMAT,
 				'sg_Is3dTrans'      => SafechargeConstants::REQUEST_DEFAULT_IS_3D_TRANS,
@@ -201,26 +199,6 @@ class SafechargeRequest  {
 		}
 	}
 
-
-	/**
-	 * Set environment to live or test
-	 *
-	 * @param boolean $live True for live, false for test
-	 */
-	public function setLive($live) {
-		$this->live = (boolean) $live;
-	}
-
-	/**
-	 * Set gateway credentials for sending query
-	 *
-	 * @param string $username Username
-	 * @param string $password Password
-	 */
-	public function setCredentials($username, $password) {
-		$this->params['sg_ClientLoginID'] = (string) $username;
-		$this->params['sg_ClientPassword'] = (string) $password;
-	}
 
 	/**
 	 * Populate query with parameters
@@ -411,7 +389,7 @@ class SafechargeRequest  {
 				$params['sg_CardNumber'] = $this->padString($params['sg_CardNumber'], 6, 4, 'x');
 			}
 		}
-		$server = $this->live ? SafechargeConstants::SERVER_LIVE : SafechargeConstants::SERVER_TEST;
+		$server = $this->settings['live'] ? SafechargeConstants::SERVER_LIVE : SafechargeConstants::SERVER_TEST;
 		$result = $server . http_build_query($params);
 
 		return $result;

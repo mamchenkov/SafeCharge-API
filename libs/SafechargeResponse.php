@@ -36,7 +36,7 @@ class SafechargeResponse  {
 	 * @throws InternalException
 	 * @throws ResponseException
 	 * @param string $response Response to parse
-	 * @return null|object SimpleXMLElement object if parsed, plain text otherwise
+	 * @return null|object SafechargeResponse object on success, null otherwise
 	 */
 	public function parse($response) {
 		$result = null;
@@ -48,11 +48,23 @@ class SafechargeResponse  {
 		}
 
 		try {
-			$result = new SimpleXMLElement($response);
+			$data = new SimpleXMLElement($response);
 		}
 		catch (Exception $e) {
-			$this->log("$queryId Failed to parse XML response: " . $e->getMessage());
 			throw new ResponseException("Failed to parse XML response: " . $e->getMessage());
+		}
+
+		if (empty($data) || !is_object($data)) {
+			return $result;
+		}
+
+		$properties = get_object_vars($data);
+		if (!empty($properties)) {
+			foreach ($properties as $key => $value) {
+				$this->$key = is_object($value) ? get_object_vars($value) : $value;
+				$this->$key = (is_array($this->$key) && empty($this->$key)) ? null : $this->$key;
+			}
+			$result = $this;
 		}
 
 		return $result;
