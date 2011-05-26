@@ -21,7 +21,7 @@ require_once dirname(__FILE__) . '/libs/SafechargeResponse.php';
  * @author Leonid Mamchenkov <leonid@mamchenkov.net>
  * @link http://www.safecharge.com
  */
-class SafeCharge {
+class Safecharge {
 
 	// Shortcuts and external exposure
 
