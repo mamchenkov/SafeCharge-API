@@ -130,11 +130,15 @@ class SafeCharge {
 	 * Constructor
 	 *
 	 * Supported settings are:
+	 *
 	 * - username   -  SafeCharge username. Required for any queries to the gateway
 	 * - password   -  SafeCharge password. Required for any queries to the gateway
 	 * - timeout    -  Network operations timeout (in seconds)
 	 * - live       -  Set to true for Live server, otherwise Test server will be used
 	 * - log        -  Full path to the log file, if logging is necessary
+	 * - padFrom    -  When masking credit card numbers in logs, leave so many starting digits
+	 * - padTo      -  When masking credit card numbers in logs, leave so many ending digits
+	 * - padWith    -  When masking credit card numbers in logs, use this character for masking
 	 * - instanceId - Some ID of this object intance to keep related queries together
 	 *
 	 * @param array $settings Settings
