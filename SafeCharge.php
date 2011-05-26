@@ -172,6 +172,7 @@ class SafeCharge {
 	/**
 	 * Send request
 	 *
+	 * @throws Exception
 	 * @param string $type Type of query (Auth, Settle, etc)
 	 * @param array $params Query params
 	 * @return null|string|object Null on failure, string or SimpleXMLElement on success
@@ -235,6 +236,7 @@ class SafeCharge {
 	/**
 	 * Send query to SafeCharge gateway
 	 *
+	 * @throws NetworkException
 	 * @param string $queryUrl Query to send
 	 * @param string $queryId ID of the query (for logging purposes)
 	 * @return string
@@ -270,6 +272,7 @@ class SafeCharge {
 	/**
 	 * Validate gateway response
 	 *
+	 * @throws ResponseException
 	 * @param string $response Response to validate
 	 * @param string $queryId ID of the query (for logging purposes)
 	 * @return void
@@ -289,6 +292,7 @@ class SafeCharge {
 	/**
 	 * Parse response as XML
 	 *
+	 * @throws ResponseException
 	 * @param string $response Response to parse
 	 * @param string $queryId ID of the query (for logging purposes)
 	 * @return null|object SimpleXMLElement object if parsed, plain text otherwise
@@ -378,6 +382,7 @@ class SafeCharge {
 	/**
 	 * Check that query parameters have correct transaction type set
 	 *
+	 * @throws InternalException
 	 * @param array $params Query params
 	 */
 	protected function doQueryCheckType($params) {
@@ -398,6 +403,7 @@ class SafeCharge {
 	 * - Check that all fields are of the correct type
 	 * - Check that all fields have a value that is within size limits
 	 *
+	 * @throws ValidationException
 	 * @param array $params Query parameters
 	 */
 	protected function doQueryCheckFields($params) {
@@ -456,6 +462,7 @@ class SafeCharge {
 	 * supported fields should be present.  This method checks that 
 	 * there are no extra unsupported fields.
 	 *
+	 * @throws InternalException
 	 * @param array $params Query parameters
 	 */
 	protected function doQueryCheckNoExtra($params) {
@@ -477,6 +484,7 @@ class SafeCharge {
 	 * - Check maximum length
 	 * - Check with Luhn algorithm
 	 *
+	 * @throws CardNumberException
 	 * @param array $params Query parameters
 	 */
 	protected function doQueryCheckCardNumber($params) {
