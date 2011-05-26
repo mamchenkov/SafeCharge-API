@@ -5,12 +5,10 @@
  * @package SafeCharge
  */
 
-// Load exceptions
-require_once dirname(__FILE__) . '/exceptions/CardNumberException.php';
-require_once dirname(__FILE__) . '/exceptions/InternalException.php';
-require_once dirname(__FILE__) . '/exceptions/NetworkException.php';
-require_once dirname(__FILE__) . '/exceptions/ValidationException.php';
-require_once dirname(__FILE__) . '/exceptions/ResponseException.php';
+/**
+ * Load common includes
+ */
+require_once dirname(__FILE__) . '/SafechargeCommon.php';
 
 /**
  * SafeCharge Response
@@ -22,9 +20,6 @@ require_once dirname(__FILE__) . '/exceptions/ResponseException.php';
  * @author Leonid Mamchenkov <leonid@mamchenkov.net>
  */
 class SafechargeResponse  {
-
-	const RESPONSE_XML_VERSION = '1.0';
-	const RESPONSE_XML_ENCODING = 'utf-8';
 
 	protected $queryId;
 
@@ -80,7 +75,7 @@ class SafechargeResponse  {
 		if (!class_exists('DOMDocument')) {
 			throw new InternalException("Insufficient PHP support: missing DOMDocument class");
 		}
-		$doc = new DOMDocument(self::RESPONSE_XML_VERSION, self::RESPONSE_XML_ENCODING);
+		$doc = new DOMDocument(SafechargeConstants::RESPONSE_XML_VERSION, SafechargeConstants::RESPONSE_XML_ENCODING);
 		$doc->loadXML($response);
 
 		if (!function_exists('libxml_get_errors')) {
