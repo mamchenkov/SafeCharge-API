@@ -17,6 +17,9 @@ require_once dirname(__FILE__) . '/libs/exceptions/NetworkException.php';
 require_once dirname(__FILE__) . '/libs/exceptions/ValidationException.php';
 require_once dirname(__FILE__) . '/libs/exceptions/ResponseException.php';
 
+// Load other classes
+require_once dirname(__FILE__) . '/libs/SafechargeResponse.php';
+
 /**
  * SafeCharge Gateway API
  *
@@ -41,9 +44,6 @@ class SafeCharge {
 
 	const SERVER_LIVE = 'https://process.safecharge.com/service.asmx/Process?';
 	const SERVER_TEST = 'https://test.safecharge.com/service.asmx/Process?';
-
-	const RESPONSE_XML_VERSION = '1.0';
-	const RESPONSE_XML_ENCODING = 'utf-8';
 
 	/**
 	 * Minimum length of a credit card number
@@ -131,6 +131,11 @@ class SafeCharge {
 		);
 
 	/**
+	 * Place to store the instance of the SafechargeResponse object
+	 */
+	protected $response;
+
+	/**
 	 * Constructor
 	 *
 	 * Supported settings are:
@@ -162,6 +167,8 @@ class SafeCharge {
 			);
 		$this->settings = array_merge($defaultSettings, $settings);
 
+		$this->response = new SafechargeResponse();
+
 		$this->log("Initialized");
 	}
 
@@ -186,6 +193,8 @@ class SafeCharge {
 		$queryId = '[QUERY ' . (string) rand(1, 100000) . ']';
 		$this->log("$queryId Starting new [$type] query");
 
+		$this->response->setQueryId($queryId);
+
 		try {
 			$params['sg_TransType'] = $type;
 
@@ -199,12 +208,11 @@ class SafeCharge {
 			$queryServer = $this->settings['live'] ? self::SERVER_LIVE : self::SERVER_TEST;
 			$queryUrl = $queryServer . $this->doQueryBuild($params);
 			$logQueryUrl = $queryServer . $this->doQueryBuild($params, true);
-			$this->log("$queryId Query URL: $logQueryUrl");
-
+			$this->log("$queryId Sending query: $logQueryUrl");
 			$response = $this->doQuerySend($queryUrl, $queryId);
-			$this->doResponseValidate($response, $queryId);
 
-			$result = $this->doResponseParse($response, $queryId);
+			$this->log("$queryId Parsing XML response");
+			$result = $this->response->parse($response);
 		}
 		catch (NetworkException $e) {
 			$this->log("$queryId Caught Network Exception: " . $e->getMessage());
@@ -267,69 +275,6 @@ class SafeCharge {
 		if (PEAR::isError($result)) {
 			$this->log("$queryId Failed to execute Curl request");
 			throw new NetworkException("Failed to execute Curl request");
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Validate gateway response
-	 *
-	 * @throws InternalException
-	 * @throws ResponseException
-	 * @param string $response Response to validate
-	 * @param string $queryId ID of the query (for logging purposes)
-	 * @return void
-	 */
-	protected function doResponseValidate($response, $queryId = null) {
-		$this->log("$queryId Validating XML response");
-
-		if (!function_exists('libxml_use_internal_errors')) {
-			throw new InternalException("Insufficient PHP support: missing libxml_use_internal_errors() function");
-		}
-		libxml_use_internal_errors(true);
-
-		if (!class_exists('DOMDocument')) {
-			throw new InternalException("Insufficient PHP support: missing DOMDocument class");
-		}
-		$doc = new DOMDocument(self::RESPONSE_XML_VERSION, self::RESPONSE_XML_ENCODING);
-		$doc->loadXML($response);
-
-		if (!function_exists('libxml_get_errors')) {
-			throw new InternalException("Insufficient PHP support: missing libxml_get_errors() function");
-		}
-		$errors = libxml_get_errors();
-
-		if (!empty($errors)) {
-			$this->log("$queryId Failed to validate XML response");
-			throw new ResponseException("Failed to validate XML response");
-		}
-	}
-
-	/**
-	 * Parse response as XML
-	 *
-	 * @throws InternalException
-	 * @throws ResponseException
-	 * @param string $response Response to parse
-	 * @param string $queryId ID of the query (for logging purposes)
-	 * @return null|object SimpleXMLElement object if parsed, plain text otherwise
-	 */
-	protected function doResponseParse($response, $queryId = null) {
-		$result = null;
-
-		$this->log("$queryId Parsing XML response");
-
-		if (!class_exists('SimpleXMLElement')) {
-			throw new InternalException("Insufficient PHP support: missing SimpleXMLElement class");
-		}
-
-		try {
-			$result = new SimpleXMLElement($response);
-		}
-		catch (Exception $e) {
-			$this->log("$queryId Failed to parse XML response: " . $e->getMessage());
-			throw new ResponseException("Failed to parse XML response: " . $e->getMessage());
 		}
 
 		return $result;
