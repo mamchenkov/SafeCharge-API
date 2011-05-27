@@ -26,13 +26,6 @@ require_once dirname(__FILE__) . '/SafechargeCommon.php';
  */
 class SafechargeRequest  {
 
-	const QUERY_AUTH   = SafechargeConstants::REQUEST_TYPE_AUTH;
-	const QUERY_SETTLE = SafechargeConstants::REQUEST_TYPE_SETTLE;
-	const QUERY_SALE   = SafechargeConstants::REQUEST_TYPE_SALE;
-	const QUERY_CREDIT = SafechargeConstants::REQUEST_TYPE_CREDIT;
-	const QUERY_VOID   = SafechargeConstants::REQUEST_TYPE_VOID;
-	const QUERY_AVS    = SafechargeConstants::REQUEST_TYPE_AVS;
-
 	/**
 	 * Request ID
 	 *
@@ -50,6 +43,30 @@ class SafechargeRequest  {
 	 * Associative array of query parameters
 	 */
 	protected $params = array();
+
+	/**
+	 * Raw request URL
+	 *
+	 * Here we'll store the full request URL exactly as it
+	 * will be sent to the Safecharge Gateway
+	 */
+	protected $urlRaw;
+
+	/**
+	 * Safe request URL
+	 *
+	 * Here we'll store the safe version of the request URL. This
+	 * will have sensitive data padded and can be used for logging
+	 * and other similar purposes
+	 */
+	public $url;
+
+	/**
+	 * Response from the gateway
+	 *
+	 * Here we'll keep the raw response from the gateway
+	 */
+	public $response;
 
 	/**
 	 * Transaction fields
@@ -79,15 +96,15 @@ class SafechargeRequest  {
 			array('name' => 'sg_TransType',      'type' => 'string',  'size' => 20,  'required' => true),
 			array('name' => 'sg_Currency',       'type' => 'string',  'size' => 3,   'required' => true),
 			array('name' => 'sg_Amount',         'type' => 'string',  'size' => 10,  'required' => true),
-			array('name' => 'sg_AuthCode',       'type' => 'string',  'size' => 10,  'required' => array(self::QUERY_SETTLE, self::QUERY_CREDIT, self::QUERY_VOID)),
+			array('name' => 'sg_AuthCode',       'type' => 'string',  'size' => 10,  'required' => array(SafechargeConstants::REQUEST_TYPE_SETTLE, SafechargeConstants::REQUEST_TYPE_CREDIT, SafechargeConstants::REQUEST_TYPE_VOID)),
 			array('name' => 'sg_ClientLoginID',  'type' => 'string',  'size' => 24,  'required' => true),
 			array('name' => 'sg_ClientPassword', 'type' => 'string',  'size' => 24,  'required' => true),
 			array('name' => 'sg_ClientUniqueID', 'type' => 'string',  'size' => 64,  'required' => false),
-			array('name' => 'sg_TransactionID',  'type' => 'int',     'size' => 32,  'required' => array(self::QUERY_SETTLE, self::QUERY_CREDIT, self::QUERY_VOID)),
+			array('name' => 'sg_TransactionID',  'type' => 'int',     'size' => 32,  'required' => array(SafechargeConstants::REQUEST_TYPE_SETTLE, SafechargeConstants::REQUEST_TYPE_CREDIT, SafechargeConstants::REQUEST_TYPE_VOID)),
 			array('name' => 'sg_AVS_Approves',   'type' => 'string',  'size' => 10,  'required' => false),
 			array('name' => 'sg_CustomData',     'type' => 'string',  'size' => 255, 'required' => false),
 			array('name' => 'sg_UserID',         'type' => 'string',  'size' => 50,  'required' => false),
-			array('name' => 'sg_CreditType',     'type' => 'int',     'size' => 1,   'required' => array(self::QUERY_CREDIT)),
+			array('name' => 'sg_CreditType',     'type' => 'int',     'size' => 1,   'required' => array(SafechargeConstants::REQUEST_TYPE_CREDIT)),
 			array('name' => 'sg_WebSite',        'type' => 'string',  'size' => 50,  'required' => false),
 			array('name' => 'sg_ProductID',      'type' => 'string',  'size' => 50,  'required' => false),
 			array('name' => 'sg_ResponseFormat', 'type' => 'numeric', 'size' => 1,   'required' => true),
@@ -111,12 +128,12 @@ class SafechargeRequest  {
 	 * List of all supported transaction types
 	 */
 	protected $transactionTypes = array(
-			self::QUERY_AUTH,
-			self::QUERY_SETTLE,
-			self::QUERY_SALE,
-			self::QUERY_CREDIT,
-			self::QUERY_VOID,
-			self::QUERY_AVS,
+			SafechargeConstants::REQUEST_TYPE_AUTH,
+			SafechargeConstants::REQUEST_TYPE_SETTLE,
+			SafechargeConstants::REQUEST_TYPE_SALE,
+			SafechargeConstants::REQUEST_TYPE_CREDIT,
+			SafechargeConstants::REQUEST_TYPE_VOID,
+			SafechargeConstants::REQUEST_TYPE_AVS,
 		);
 
 	/**
@@ -209,7 +226,12 @@ class SafechargeRequest  {
 
 		$this->validateParameters($allParams);
 
+		// Save parameters as they were
 		$this->params = $allParams;
+
+		// Update request URLs from the new parameters
+		$this->urlRaw = $this->build();
+		$this->url    = $this->build(true);
 	}
 
 	/**
@@ -220,9 +242,9 @@ class SafechargeRequest  {
 	 * @param array $params Query parameters
 	 */
 	protected function validateParameters($params) {
-		$this->doQueryCheckFields($params);
-		$this->doQueryCheckNoExtra($params);
-		$this->doQueryCheckCardNumber($params);
+		$this->validateFields($params);
+		$this->validateNoExtraFields($params);
+		$this->validateCardNumber($params);
 	}
 
 	/**
@@ -235,7 +257,7 @@ class SafechargeRequest  {
 	 * @throws ValidationException
 	 * @param array $params Query parameters
 	 */
-	protected function doQueryCheckFields($params) {
+	protected function validateFields($params) {
 		$transactionType = $params['sg_TransType'];
 		// Check for all required fields and formats
 		foreach ($this->transactionFields as $field) {
@@ -294,7 +316,7 @@ class SafechargeRequest  {
 	 * @throws InternalException
 	 * @param array $params Query parameters
 	 */
-	protected function doQueryCheckNoExtra($params) {
+	protected function validateNoExtraFields($params) {
 		$allowedFields = array();
 		foreach ($this->transactionFields as $field) {
 			$allowedFields[] = $field['name'];
@@ -316,7 +338,7 @@ class SafechargeRequest  {
 	 * @throws CardNumberException
 	 * @param array $params Query parameters
 	 */
-	protected function doQueryCheckCardNumber($params) {
+	protected function validateCardNumber($params) {
 		$cardNumber = $params['sg_CardNumber'];
 
 		if ($cardNumber <> $this->cleanCardNumber($cardNumber)) {
@@ -357,7 +379,7 @@ class SafechargeRequest  {
 	 * @param string $number Card number to clean
 	 * @return string
 	 */
-	public function cleanCardNumber($number) {
+	protected function cleanCardNumber($number) {
 		$result = preg_replace('/\D/', '', $number);
 		return $result;
 	}
@@ -371,7 +393,7 @@ class SafechargeRequest  {
 	 * @param boolean $safe Build a safe query or full query
 	 * @return string
 	 */
-	public function build($safe = false) {
+	protected function build($safe = false) {
 		$result = '';
 
 		$params = $this->params;
@@ -408,7 +430,7 @@ class SafechargeRequest  {
 	 * @param string $char Character to replace with
 	 * @return string
 	 */
-	public function padString($string, $start = 6, $end = 4, $char = 'x') {
+	protected function padString($string, $start = 6, $end = 4, $char = 'x') {
 		$result = ''; 
 
 		if ($start === null) { $start = $this->settings['padFrom']; }
@@ -431,11 +453,12 @@ class SafechargeRequest  {
 	 * Send query to SafeCharge gateway
 	 *
 	 * @throws NetworkException
-	 * @param string $queryUrl Query to send
-	 * @return string
+	 * @return object Instance of SafechargeRequest
 	 */
-	public function send($queryUrl) {
+	public function send() {
 		$result = null;
+
+		$queryUrl = $this->urlRaw;
 
 		$curl = new Net_Curl($queryUrl);
 		if (!is_object($curl)) {
@@ -451,10 +474,13 @@ class SafechargeRequest  {
 		}
 
 		// Fetch
-		$result = trim($curl->execute());
-		if (PEAR::isError($result)) {
+		$response = trim($curl->execute());
+		if (PEAR::isError($response)) {
 			throw new NetworkException("Failed to execute Curl request");
 		}
+
+		$this->response = $response;
+		$result = $this;
 
 		return $result;
 	}

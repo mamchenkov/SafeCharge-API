@@ -44,16 +44,6 @@ class Safecharge {
 	protected $settings = array();
 
 	/**
-	 * Place to store the instance of the SafechargeRequest object
-	 */
-	protected $request;
-
-	/**
-	 * Place to store the instance of the SafechargeResponse object
-	 */
-	protected $response;
-
-	/**
 	 * Constructor
 	 *
 	 * Supported settings are:
@@ -88,8 +78,6 @@ class Safecharge {
 			);
 		$this->settings = array_merge($defaultSettings, $settings);
 
-		$this->response = new SafechargeResponse();
-
 		$this->log("Initialized");
 	}
 
@@ -111,25 +99,24 @@ class Safecharge {
 	public function request($type, $params) {
 		$result = null;
 
-		$this->request = new SafechargeRequest($this->settings);
-
-		$queryId = $this->request->getId();
-		$this->log("$queryId Starting new [$type] query");
-
-		$this->response->setQueryId($queryId);
-
 		try {
-			$this->request->setType($type);
-			$this->request->setParameters($params);
+			$request = new SafechargeRequest($this->settings);
 
-			$logQueryUrl = $this->request->build(true);
-			$this->log("$queryId Sending query: $logQueryUrl");
+			$queryId = $request->getId();
+			$this->log("$queryId Starting new [$type] query");
 
-			$queryUrl = $this->request->build();
-			$response = $this->request->send($queryUrl, $queryId);
+			$request->setType($type);
+			$request->setParameters($params);
 
-			$this->log("$queryId Parsing XML response");
-			$result = $this->response->parse($response);
+			$queryUrl = $request->url;
+			$this->log("$queryId Sending query: $queryUrl");
+			$request = $request->send();
+
+			$this->log("$queryId Parsing response");
+			$response = new SafechargeResponse;
+			$result = $response->parse($request);
+
+			$this->log("$queryId Result: " . print_r($result, true));
 		}
 		catch (NetworkException $e) {
 			$this->log("$queryId Caught Network Exception: " . $e->getMessage());
@@ -155,8 +142,6 @@ class Safecharge {
 			$this->log("$queryId Caught Exception: " . $e->getMessage());
 			throw new Exception("Internal server error. Please try again later");
 		}
-
-		$this->log("$queryId Result: " . print_r($result, true));
 
 		return $result;
 	}

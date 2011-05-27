@@ -21,25 +21,22 @@ require_once dirname(__FILE__) . '/SafechargeCommon.php';
  */
 class SafechargeResponse  {
 
-	protected $queryId;
-
-	public function __construct() {
-	}
-
-	public function setQueryId($queryId) {
-		$this->queryId = $queryId;
-	}
+	public $queryId;
 
 	/**
 	 * Parse XML response 
 	 *
 	 * @throws InternalException
 	 * @throws ResponseException
-	 * @param string $response Response to parse
+	 * @param object $request Instance of SafechargeRequest that contains unparsed response
 	 * @return null|object SafechargeResponse object on success, null otherwise
 	 */
-	public function parse($response) {
+	public function parse(SafechargeRequest $request) {
 		$result = null;
+
+		$this->queryId = $request->getId();
+
+		$response = trim($request->response);
 
 		$this->validate($response);
 
@@ -79,6 +76,11 @@ class SafechargeResponse  {
 	 * @return void
 	 */
 	protected function validate($response) {
+		$response = trim($response);
+		if (empty($response)) {
+			throw new ResponseException("Empty response");
+		}
+
 		if (!function_exists('libxml_use_internal_errors')) {
 			throw new InternalException("Insufficient PHP support: missing libxml_use_internal_errors() function");
 		}
