@@ -101,14 +101,14 @@ class Safecharge {
 	}
 
 	/**
-	 * Send request
+	 * Send request to the gateway server
 	 *
 	 * @throws Exception
 	 * @param string $type Type of query (Auth, Settle, etc)
 	 * @param array $params Query params
 	 * @return null|object Null on failure, or SafechargeResponse object on success
 	 */
-	public function doQuery($type, $params) {
+	public function request($type, $params) {
 		$result = null;
 
 		$this->request = new SafechargeRequest($this->settings);

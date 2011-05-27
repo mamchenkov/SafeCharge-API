@@ -99,7 +99,7 @@ class SafechargeTest extends PHPUnit_Framework_TestCase {
 
 		$sf = new Safecharge($settings);
 
-		$result = $sf->doQuery($type, $params, true);
+		$result = $sf->request($type, $params, true);
 		$this->assertFalse(empty($result), "Result is empty");
 		$this->assertTrue(is_object($result), "Result is not an XML object");
 		$this->assertFalse(empty($result->TransactionID), "No transaction ID");
